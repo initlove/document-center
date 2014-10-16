@@ -1,4 +1,4 @@
-SUBDIRS = pixmaps ui common lib widgets src po
+SUBDIRS = common lib widget src
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 

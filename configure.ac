@@ -77,7 +77,6 @@ PKG_PROG_PKG_CONFIG
 dnl If you add a version number here, you *must* add an AC_SUBST line for
 dnl it too, or it will never make it into the spec file!
 
-LIBXML_REQUIRED=2.5.0
 GLIB_REQUIRED=2.36.0
 GTK_REQUIRED=3.8.0
 
@@ -87,10 +86,7 @@ AC_SUBST(CLUTTER_REQUIRED)
 
 dnl pkg-config dependency checks
 PKG_CHECK_MODULES(COMMON, dbus-glib-1 gobject-2.0 gio-2.0)
-PKG_CHECK_MODULES(LIBXML, libxml-2.0 >= $LIBXML_REQUIRED)
-PKG_CHECK_MODULES(LIBSOUP, libsoup-2.4)
-PKG_CHECK_MODULES(LIBOASYNCWORKER, glib-2.0 gobject-2.0 gthread-2.0)
-PKG_CHECK_MODULES(DOCUMENT_CENTER, libxml-2.0 >= $LIBXML_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED gtk+-3.0 >= $GTK_REQUIRED gmodule-export-2.0 gmodule-2.0)
+PKG_CHECK_MODULES(DOCUMENT_CENTER, glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED gtk+-3.0 >= $GTK_REQUIRED gmodule-export-2.0 gmodule-2.0)
 
 
 dnl gnome-doc-utils stuff
@@ -112,15 +108,11 @@ GOBJECT_INTROSPECTION_CHECK([0.9.7])
 
 AC_CONFIG_FILES([
 Makefile
-pixmaps/Makefile
-pixmaps/spin/Makefile
-ui/Makefile
 common/Makefile
 lib/Makefile
 widget/Makefile
 src/Makefile
 lib/document-center-0.1.pc
-po/Makefile.in
 ])
 
 AC_OUTPUT
