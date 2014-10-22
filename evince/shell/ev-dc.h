@@ -47,8 +47,9 @@ struct _EvDCClass
 {
 	GtkBoxClass base_class;
 
-	void (* changed)       (EvDC *dc);
-//        void (* activate) (EvDC *dc);
+	void (* changed)        (EvDC *dc);
+        void (* activated) 	(EvDC *dc,
+				const gchar *path);
 };
 
 GType      ev_dc_get_type         (void);

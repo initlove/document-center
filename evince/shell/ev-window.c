@@ -2116,7 +2116,7 @@ ev_window_open_uri (EvWindow       *ev_window,
 		    const gchar    *search_string)
 {
 	GFile *source_file;
-printf ("ev_window_open_uri <%s>\n", uri);
+
 	ev_change_dc_mode (ev_window, FALSE);
 	ev_window->priv->in_reload = FALSE;
 
@@ -4077,6 +4077,26 @@ ev_window_cmd_edit_copy (GtkAction *action, EvWindow *ev_window)
         g_return_if_fail (EV_IS_WINDOW (ev_window));
 
 	ev_view_copy (EV_VIEW (ev_window->priv->view));
+}
+
+static void
+ev_window_dc_activated_cb (GObject    *object,
+			   const gchar  *path,
+			   EvWindow   *window)
+{
+//dliang
+	GFile*file;
+	gchar *uri;
+
+	ev_change_dc_mode (window, FALSE);
+
+	file = g_file_new_for_path (path);
+	uri = g_file_get_uri (file);
+	ev_application_open_uri_at_dest (EV_APP, uri,
+					 gtk_window_get_screen (GTK_WINDOW (window)),
+					 NULL, 0, NULL, gtk_get_current_event_time ());
+	g_object_unref (file);
+	g_free (uri);
 }
 
 static void
@@ -7468,6 +7488,10 @@ ev_window_init (EvWindow *ev_window)
 	gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
 			    ev_window->priv->center,
 			    TRUE, TRUE, 0);
+	g_signal_connect (ev_window->priv->center,
+			  "activated",
+			  G_CALLBACK (ev_window_dc_activated_cb),
+			  ev_window);
 #endif
 //dliang end
 

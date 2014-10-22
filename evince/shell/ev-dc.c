@@ -43,7 +43,7 @@
 
 enum {
 	CHANGED,
-        ACTIVATE,
+        ACTIVATED,
 
 	N_SIGNALS
 };
@@ -172,7 +172,6 @@ sort_func (GtkTreeModel *model,
 	int ret = TRUE;
 
 	/* TODO */
-
 	gtk_tree_model_get (model, a,
 	                COL_DISPLAY_NAME, &name_a,
 	                -1);
@@ -180,7 +179,6 @@ sort_func (GtkTreeModel *model,
 	gtk_tree_model_get (model, b,
 	                COL_DISPLAY_NAME, &name_b,
 	                -1);
-
 
 	g_free (name_a);
 	g_free (name_b);
@@ -214,13 +212,26 @@ item_activated (GtkIconView *icon_view,
 	          GtkTreePath *tree_path,
 	          gpointer     user_data)
 {
+	EvDC *dc;
 	GtkListStore *store;
 	GtkTreeIter iter;
-	store = GTK_LIST_STORE (user_data);
+	gchar *path;
+
+	dc = EV_DC (user_data);
+	store = dc->priv->store;
 
 	gtk_tree_model_get_iter (GTK_TREE_MODEL (store),
 	                     &iter, tree_path);
+
+	gtk_tree_model_get (GTK_TREE_MODEL (store), &iter,
+                      COL_PATH, &path,
+                      -1);
+	printf ("path is %s\n", path);
+
+	g_signal_emit (dc, signals[ACTIVATED], 0, path);
+	g_free (path);
 }
+
 static void
 ev_dc_finalize (GObject *object)
 {
@@ -249,17 +260,16 @@ ev_dc_class_init (EvDCClass *class)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__VOID,
                               G_TYPE_NONE, 0);
-#if 0
-        signals[ACTIVATE] =
-                g_signal_new ("activate",
+        signals[ACTIVATED] =
+                g_signal_new ("activated",
                               G_OBJECT_CLASS_TYPE (object_class),
                               G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
-                              G_STRUCT_OFFSET (EvDCClass, activate_link),
+                              G_STRUCT_OFFSET (EvDCClass, activated),
                               NULL, NULL,
                               g_cclosure_marshal_VOID__OBJECT,
                               G_TYPE_NONE, 1,
-                              G_TYPE_OBJECT);
-#endif
+                              G_TYPE_STRING);
+
 	g_type_class_add_private (object_class, sizeof (EvDCPrivate));
 }
 
@@ -300,7 +310,7 @@ ev_dc_init (EvDC *dc)
 
 	/* Connect to the "item-activated" signal */
 	g_signal_connect (dc->priv->icon_view, "item-activated",
-	                  G_CALLBACK (item_activated), dc->priv->store);
+	                  G_CALLBACK (item_activated), dc);
 	gtk_container_add (GTK_CONTAINER (dc->priv->sw), dc->priv->icon_view);
 
 	gtk_widget_grab_focus (dc->priv->icon_view);
