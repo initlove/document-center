@@ -397,12 +397,8 @@ ev_change_dc_mode (EvWindow *window, gboolean dc)
 	if (dc) {
 		gtk_widget_show_all (window->priv->center);
 		gtk_widget_hide (window->priv->hpaned);
-//		gtk_widget_hide (window->priv->toolbar);
-//		gtk_widget_hide (window->priv->find_bar);
 	} else {
 		gtk_widget_show_all (window->priv->hpaned);
-//		gtk_widget_show_all (window->priv->toolbar);
-//		gtk_widget_show_all (window->priv->find_bar);
 		gtk_widget_hide (window->priv->center);
 	}
 	ev_window_set_action_sensitive (window, "DocumentCenterOpen", !dc);
@@ -7467,7 +7463,7 @@ ev_window_init (EvWindow *ev_window)
 			    FALSE, TRUE, 0);
 
 //dliang begin
-	ev_window->priv->center = ev_dc_new ();
+	ev_window->priv->center = GTK_WIDGET (ev_dc_new ());
 #if 1
 	gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
 			    ev_window->priv->center,
