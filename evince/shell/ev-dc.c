@@ -529,6 +529,7 @@ dc_load_remote_files (EvDC	*dc)
 		gchar *command;
 		gint status;
 //Don't know if pipe could handle large buffer, use file instead 
+/* TODO, if no bypy, better implement */
 		command = g_strdup ("/usr/bin/bypy.py list > /tmp/.evince_remote_list");
 		status = system (command);
 		g_free (command);
@@ -648,6 +649,7 @@ send_to_cloud_callback (GtkButton *button,
 		gchar *command;
 		gint status;
 
+/* TODO, if no bypy, better implement */
 		command = g_strdup_printf ("/usr/bin/bypy.py upload \"%s\"", dc->priv->current_file);
 		status = system (command);
 		g_free (command);
