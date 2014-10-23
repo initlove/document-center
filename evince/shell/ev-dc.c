@@ -62,6 +62,7 @@ static guint signals[N_SIGNALS] = {0, };
 struct _EvDCPrivate {
 	GnomeDesktopThumbnailFactory *gf;
         GHashTable	*tag_table;
+        GHashTable	*thumbail_table;
 	GList		*monitor_dirs;
 	GList           *pdf_files;
 	GList		*remote_files;
@@ -169,6 +170,34 @@ file_fit_view (EvDC *dc, const gchar *path)
 		return FALSE;
 }
 
+static GdkPixbuf *
+get_thumbail (EvDC *dc, const char *path)
+{
+	gchar *thumbail_path;
+	GdkPixbuf *thumbail_pixbuf;
+		
+	thumbail_pixbuf = g_hash_table_lookup (dc->priv->thumbail_table, path);
+	if (thumbail_pixbuf) {
+		return thumbail_pixbuf;
+	}
+
+	thumbail_path = gnome_desktop_thumbnail_path_for_uri (path, GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
+	thumbail_pixbuf = gdk_pixbuf_new_from_file(thumbail_path, NULL);
+	g_free (thumbail_path);
+		
+	if (!thumbail_pixbuf) {
+		thumbail_pixbuf = gnome_desktop_thumbnail_factory_generate_thumbnail (dc->priv->gf, path, "application/pdf");
+		gnome_desktop_thumbnail_factory_save_thumbnail (dc->priv->gf, thumbail_pixbuf, path, 0);
+	}
+
+	if (!thumbail_pixbuf)
+		thumbail_pixbuf = dc->priv->file_pixbuf;
+
+	g_hash_table_insert (dc->priv->thumbail_table, (gpointer) path, (gpointer) thumbail_pixbuf);
+
+	return thumbail_pixbuf;
+}
+
 static void
 load_icon_view (EvDC *dc)
 {
@@ -177,15 +206,12 @@ load_icon_view (EvDC *dc)
 	const gchar *path;
 	GList *pdf_files, *l;
 	GtkTreeIter iter;
-	GnomeDesktopThumbnailFactory *gf;
-	
+
 	store = dc->priv->store;
 
 	pdf_files = dc->priv->pdf_files;
 	/* First clear the store */
 	gtk_list_store_clear (store);
-
-	gf = dc->priv->gf;
 
 	for (l = pdf_files; l; l = l->next) {
 		path = (gchar *) l->data;
@@ -193,22 +219,14 @@ load_icon_view (EvDC *dc)
 			continue;
 		}
 
-		gchar *thumbail_path;
-//TODO: need to unref 
 		GdkPixbuf *thumbail_pixbuf;
-//TODO: need g_free?  or need to make a cache?
-		thumbail_path = gnome_desktop_thumbnail_path_for_uri (path, GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
-		thumbail_pixbuf = gdk_pixbuf_new_from_file(thumbail_path, NULL);
-		if (!thumbail_pixbuf) {
-			thumbail_pixbuf = gnome_desktop_thumbnail_factory_generate_thumbnail (gf, path, "application/pdf");
-			gnome_desktop_thumbnail_factory_save_thumbnail (gf, thumbail_pixbuf, path, 0);
-		}
+		thumbail_pixbuf = get_thumbail (dc, path);
 		display_name = g_path_get_basename (path);
 		gtk_list_store_append (store, &iter);
 		gtk_list_store_set (store, &iter,
 	                        COL_PATH, path,
 	                        COL_DISPLAY_NAME, display_name,
-	                        COL_PIXBUF, thumbail_pixbuf ? thumbail_pixbuf : dc->priv->file_pixbuf,
+	                        COL_PIXBUF, thumbail_pixbuf,
 	                        -1);
 		g_free (display_name);
 	}
@@ -382,6 +400,10 @@ ev_dc_finalize (GObject *object)
 
 	if (dc->priv->tag_table)
 		g_hash_table_destroy (dc->priv->tag_table);
+
+	g_object_unref (dc->priv->gf);
+	if (dc->priv->thumbail_table)
+		g_hash_table_destroy (dc->priv->thumbail_table);
 
 	G_OBJECT_CLASS (ev_dc_parent_class)->finalize (object);
 }
@@ -750,6 +772,8 @@ ev_dc_init (EvDC *dc)
 	gtk_orientable_set_orientation (GTK_ORIENTABLE (dc), GTK_ORIENTATION_VERTICAL);
 
 	dc->priv->tag_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	dc->priv->gf = gnome_desktop_thumbnail_factory_new (GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
+	dc->priv->thumbail_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 
 	dc->priv->remote_files = NULL;
 	dc->priv->current_file = NULL;
@@ -784,6 +808,7 @@ ev_dc_init (EvDC *dc)
 	gtk_box_pack_start (GTK_BOX (dc->priv->header_bar), dc->priv->header_share_button, FALSE, FALSE, 0);
 	gtk_widget_set_sensitive (dc->priv->header_share_button, FALSE);
 
+/*TODO, now only list at startup */
 	dc->priv->header_remote_file_button =  gtk_button_new_with_mnemonic (_("_List remote files"));
 	gtk_box_pack_start (GTK_BOX (dc->priv->header_bar), dc->priv->header_remote_file_button, FALSE, FALSE, 0);
 	g_signal_connect (dc->priv->header_remote_file_button, "clicked",
@@ -799,7 +824,6 @@ ev_dc_init (EvDC *dc)
 
 	gtk_box_pack_start (GTK_BOX (dc), dc->priv->sw, TRUE, TRUE, 0);
 
-	dc->priv->gf = gnome_desktop_thumbnail_factory_new (GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
 	/* Create the store and fill it with the contents of '/' */
 	dc->priv->store = create_store ();
 
