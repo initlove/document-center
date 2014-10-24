@@ -576,6 +576,7 @@ tag_item_cb (GtkMenuItem *item,
 	const gchar *label;
 	gint dest_tag = TAG_UNREAD;
 	gint i;
+
 	label = gtk_menu_item_get_label (item);
 	for (i = 1; tag_labels[i]; i++) {
 		if (strcmp (tag_labels[i], label) == 0) {
@@ -596,7 +597,14 @@ tag_item_cb (GtkMenuItem *item,
 	if (dest_tag == cur_tag) {
 		return;
 	} else {
-		g_hash_table_replace (dc->priv->tag_table, g_strdup (dc->priv->current_file), g_strdup_printf ("%d", dest_tag));
+		gchar *n_key, *n_value;
+		n_key = g_strdup (dc->priv->current_file);
+		n_value = g_strdup_printf ("%d", dest_tag);
+		if (value) {
+			g_hash_table_replace (dc->priv->tag_table, n_key, n_value);
+		} else {
+			g_hash_table_insert (dc->priv->tag_table, n_key, n_value);
+		}
 		load_icon_view (dc);
 	}
 }
@@ -724,13 +732,13 @@ load_tags (EvDC *dc)
 	argv = g_strsplit (content, "\n", -1);
 	for (i = 0; argv[i]; i++) {
 		gchar *path, *tag, *p;
-		path = g_strdup (argv[i]);
+		path = argv[i];
 		p = strrchr (path, ' ');
 		if (!p)
 			continue;
 		tag = p+1;
 		*p = 0;
-		g_hash_table_insert (dc->priv->tag_table, path, tag);
+		g_hash_table_insert (dc->priv->tag_table, g_strdup (path), g_strdup (tag));
 	}
 
 	g_strfreev (argv);
