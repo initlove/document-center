@@ -269,7 +269,7 @@ sort_func (GtkTreeModel *model,
 	g_free (a_path);
 	g_free (b_path);
 
-	return a_atime > b_atime;
+	return a_atime < b_atime;
 }
 
 static GtkListStore *
