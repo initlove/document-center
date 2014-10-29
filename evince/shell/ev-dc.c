@@ -193,7 +193,7 @@ get_thumbail (EvDC *dc, const char *path)
 	if (!thumbail_pixbuf)
 		thumbail_pixbuf = dc->priv->file_pixbuf;
 
-	g_hash_table_insert (dc->priv->thumbail_table, (gpointer) path, (gpointer) thumbail_pixbuf);
+	g_hash_table_insert (dc->priv->thumbail_table, (gpointer) g_strdup(path), (gpointer) thumbail_pixbuf);
 
 	return thumbail_pixbuf;
 }
@@ -401,7 +401,6 @@ ev_dc_finalize (GObject *object)
 	if (dc->priv->tag_table)
 		g_hash_table_destroy (dc->priv->tag_table);
 
-	g_object_unref (dc->priv->gf);
 	if (dc->priv->thumbail_table)
 		g_hash_table_destroy (dc->priv->thumbail_table);
 
@@ -439,13 +438,14 @@ ev_dc_class_init (EvDCClass *class)
 static void
 load_remote_files (EvDC *dc)
 {
-	gchar *filename;
+	gchar *filename = "/tmp/.evince_remote_list";
 	gchar *content = NULL;
 	gchar **argv;
 	gsize length;
 
-	filename = g_strdup ("/tmp/.evince_remote_list");
 	g_file_get_contents (filename, &content, &length, NULL);
+	if (!content)
+		return;
 	argv = g_strsplit_set (content, "\n \t", -1);
 
 	gint i;
@@ -457,7 +457,6 @@ load_remote_files (EvDC *dc)
 
 	g_strfreev (argv);
 	g_free (content);
-	g_free (filename);
 }
 
 static void
@@ -465,6 +464,7 @@ dc_job_list_child_watch (GPid            pid,
 		    int                  status,
                     EvDC		*dc)
 {
+#if 0
         printf ("upload job: child (pid:%d) done (%s:%d)",
                  (int) pid,
                  WIFEXITED (status) ? "status"
@@ -473,7 +473,7 @@ dc_job_list_child_watch (GPid            pid,
                  WIFEXITED (status) ? WEXITSTATUS (status)
                  : WIFSIGNALED (status) ? WTERMSIG (status)
                  : -1);
-
+#endif
 
         if (WIFEXITED (status)) {
 		/*OK*/
@@ -729,6 +729,8 @@ load_tags (EvDC *dc)
 	gint i;
 
 	g_file_get_contents (filename, &content, &length, NULL);
+	if (!content)
+		return;
 	argv = g_strsplit (content, "\n", -1);
 	for (i = 0; argv[i]; i++) {
 		gchar *path, *tag, *p;
@@ -775,6 +777,17 @@ save_tags (EvDC *dc)
         g_free (data);
 }
 
+static GnomeDesktopThumbnailFactory *
+get_thumbnail_factory (void)
+{
+	static GnomeDesktopThumbnailFactory *gf = NULL;
+
+	if (!gf)
+		gf = gnome_desktop_thumbnail_factory_new (GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
+		
+	return gf;
+}
+
 static void
 ev_dc_init (EvDC *dc)
 {
@@ -782,7 +795,7 @@ ev_dc_init (EvDC *dc)
 	gtk_orientable_set_orientation (GTK_ORIENTABLE (dc), GTK_ORIENTATION_VERTICAL);
 
 	dc->priv->tag_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	dc->priv->gf = gnome_desktop_thumbnail_factory_new (GNOME_DESKTOP_THUMBNAIL_SIZE_NORMAL);
+	dc->priv->gf = get_thumbnail_factory ();
 	dc->priv->thumbail_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 
 	dc->priv->remote_files = NULL;
